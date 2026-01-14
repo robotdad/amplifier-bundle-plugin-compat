@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 from pathlib import Path
-from typing import Optional
 
 import click
 
@@ -28,7 +27,7 @@ def main() -> None:
     default=None,
     help="Path to .amplifier directory",
 )
-def install(source: str, force: bool, amplifier_home: Optional[Path]) -> None:
+def install(source: str, force: bool, amplifier_home: Path | None) -> None:
     """Install a Claude Code plugin.
 
     SOURCE can be:
@@ -54,7 +53,7 @@ def install(source: str, force: bool, amplifier_home: Optional[Path]) -> None:
     default=None,
     help="Path to .amplifier directory",
 )
-def list(amplifier_home: Optional[Path]) -> None:
+def list(amplifier_home: Path | None) -> None:
     """List installed plugins."""
     plugins = get_installed_plugins(amplifier_home)
 
@@ -94,7 +93,7 @@ def list(amplifier_home: Optional[Path]) -> None:
     default=None,
     help="Path to .amplifier directory",
 )
-def show(name: str, amplifier_home: Optional[Path]) -> None:
+def show(name: str, amplifier_home: Path | None) -> None:
     """Show details of an installed plugin."""
     plugins = get_installed_plugins(amplifier_home)
 
@@ -146,7 +145,7 @@ def show(name: str, amplifier_home: Optional[Path]) -> None:
     default=None,
     help="Path to .amplifier directory",
 )
-def remove(name: str, yes: bool, amplifier_home: Optional[Path]) -> None:
+def remove(name: str, yes: bool, amplifier_home: Path | None) -> None:
     """Remove an installed plugin."""
     plugins = get_installed_plugins(amplifier_home)
 
@@ -200,7 +199,7 @@ def validate(path: Path) -> None:
     default=None,
     help="Path to .amplifier directory",
 )
-def update(name: str, amplifier_home: Optional[Path]) -> None:
+def update(name: str, amplifier_home: Path | None) -> None:
     """Update an installed plugin to latest version."""
     plugins = get_installed_plugins(amplifier_home)
 

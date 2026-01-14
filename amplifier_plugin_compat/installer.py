@@ -7,17 +7,15 @@ import subprocess
 import tempfile
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Optional
 
 from amplifier_plugin_compat.parser import ParsedPlugin, parse_plugin
-from amplifier_plugin_compat.translator import translate_agent
 from amplifier_plugin_compat.registry import (
-    PluginInfo,
     create_plugin_info,
     get_installed_plugins,
     register_plugin,
     unregister_plugin,
 )
+from amplifier_plugin_compat.translator import translate_agent
 
 
 @dataclass
@@ -48,7 +46,7 @@ class InstallResult:
 
 def install_plugin(
     source: str,
-    amplifier_home: Optional[Path] = None,
+    amplifier_home: Path | None = None,
     force: bool = False,
 ) -> InstallResult:
     """Install a Claude Code plugin for use with Amplifier.
@@ -159,7 +157,7 @@ def install_plugin(
 
 def remove_plugin(
     name: str,
-    amplifier_home: Optional[Path] = None,
+    amplifier_home: Path | None = None,
 ) -> tuple[bool, str]:
     """Remove an installed plugin.
 
@@ -343,6 +341,12 @@ def _register_skills_directory(skills_dir: Path, amplifier_home: Path) -> None:
     The skills module looks in configured directories for skills.
     Plugin skills are nested (plugin/skills/skill-name/SKILL.md),
     so we need to add the plugin's skills directory to the search path.
+
+    Settings go under the 'config' section to match Amplifier's structure:
+    config:
+      skills:
+        dirs:
+          - /path/to/skills
     """
     import yaml
 
@@ -354,16 +358,18 @@ def _register_skills_directory(skills_dir: Path, amplifier_home: Path) -> None:
         with open(settings_path) as f:
             settings = yaml.safe_load(f) or {}
 
-    # Ensure skills.dirs exists
-    if "skills" not in settings:
-        settings["skills"] = {}
-    if "dirs" not in settings["skills"]:
-        settings["skills"]["dirs"] = []
+    # Ensure config.skills.dirs exists
+    if "config" not in settings:
+        settings["config"] = {}
+    if "skills" not in settings["config"]:
+        settings["config"]["skills"] = {}
+    if "dirs" not in settings["config"]["skills"]:
+        settings["config"]["skills"]["dirs"] = []
 
     # Add the skills directory if not already present
     skills_dir_str = str(skills_dir)
-    if skills_dir_str not in settings["skills"]["dirs"]:
-        settings["skills"]["dirs"].append(skills_dir_str)
+    if skills_dir_str not in settings["config"]["skills"]["dirs"]:
+        settings["config"]["skills"]["dirs"].append(skills_dir_str)
 
     # Write back
     with open(settings_path, "w") as f:
@@ -382,7 +388,7 @@ def _unregister_skills_directory(skills_dir: Path, amplifier_home: Path) -> None
     with open(settings_path) as f:
         settings = yaml.safe_load(f) or {}
 
-    skills_dirs = settings.get("skills", {}).get("dirs", [])
+    skills_dirs = settings.get("config", {}).get("skills", {}).get("dirs", [])
     skills_dir_str = str(skills_dir)
 
     if skills_dir_str in skills_dirs:

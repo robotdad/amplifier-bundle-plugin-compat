@@ -2,14 +2,13 @@
 
 from __future__ import annotations
 
-import pytest
+from pathlib import Path
 
 from amplifier_plugin_compat.translator import (
     translate_agent,
     translate_command,
     translate_hooks,
 )
-from pathlib import Path
 
 
 class TestTranslateAgent:

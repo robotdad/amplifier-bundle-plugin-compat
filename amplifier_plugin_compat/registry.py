@@ -5,7 +5,6 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 from datetime import datetime
 from pathlib import Path
-from typing import Optional
 
 import yaml
 
@@ -44,14 +43,14 @@ class PluginInfo:
         )
 
 
-def get_registry_path(amplifier_home: Optional[Path] = None) -> Path:
+def get_registry_path(amplifier_home: Path | None = None) -> Path:
     """Get path to plugins.yaml registry file."""
     if amplifier_home is None:
         amplifier_home = Path.home() / ".amplifier"
     return amplifier_home / "plugins.yaml"
 
 
-def get_installed_plugins(amplifier_home: Optional[Path] = None) -> dict[str, PluginInfo]:
+def get_installed_plugins(amplifier_home: Path | None = None) -> dict[str, PluginInfo]:
     """Read installed plugins from registry.
 
     Args:
@@ -72,7 +71,7 @@ def get_installed_plugins(amplifier_home: Optional[Path] = None) -> dict[str, Pl
     return {name: PluginInfo.from_dict(name, info) for name, info in installed.items()}
 
 
-def register_plugin(info: PluginInfo, amplifier_home: Optional[Path] = None) -> None:
+def register_plugin(info: PluginInfo, amplifier_home: Path | None = None) -> None:
     """Add or update a plugin in the registry.
 
     Args:
@@ -101,7 +100,7 @@ def register_plugin(info: PluginInfo, amplifier_home: Optional[Path] = None) -> 
         yaml.dump(data, f, default_flow_style=False, sort_keys=False)
 
 
-def unregister_plugin(name: str, amplifier_home: Optional[Path] = None) -> bool:
+def unregister_plugin(name: str, amplifier_home: Path | None = None) -> bool:
     """Remove a plugin from the registry.
 
     Args:

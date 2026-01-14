@@ -4,7 +4,6 @@ from __future__ import annotations
 
 import re
 from pathlib import Path
-from typing import Optional
 
 import yaml
 
@@ -124,10 +123,12 @@ def translate_hooks(hooks_config: dict, plugin_root: Path, target_root: Path) ->
                     command = hook.get("command", "")
                     # Translate path variables
                     command = _translate_hook_command(command, plugin_root, target_root)
-                    shell_hooks.append({
-                        "event": amp_event,
-                        "command": command,
-                    })
+                    shell_hooks.append(
+                        {
+                            "event": amp_event,
+                            "command": command,
+                        }
+                    )
 
     return {"shell_hooks": shell_hooks} if shell_hooks else {}
 
@@ -166,7 +167,7 @@ def translate_command(content: str) -> dict:
     return result
 
 
-def _split_frontmatter(content: str) -> tuple[Optional[str], str]:
+def _split_frontmatter(content: str) -> tuple[str | None, str]:
     """Split markdown into frontmatter and body.
 
     Returns:

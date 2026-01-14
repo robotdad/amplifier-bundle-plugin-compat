@@ -5,7 +5,6 @@ from __future__ import annotations
 import json
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Optional
 
 
 @dataclass
@@ -15,10 +14,10 @@ class PluginManifest:
     name: str
     version: str
     description: str
-    author: Optional[dict] = None
-    homepage: Optional[str] = None
-    repository: Optional[str] = None
-    license: Optional[str] = None
+    author: dict | None = None
+    homepage: str | None = None
+    repository: str | None = None
+    license: str | None = None
     keywords: list[str] = field(default_factory=list)
 
     @classmethod
@@ -45,10 +44,10 @@ class ParsedPlugin:
     skills: list[Path] = field(default_factory=list)
     agents: list[Path] = field(default_factory=list)
     commands: list[Path] = field(default_factory=list)
-    hooks_config: Optional[dict] = None
+    hooks_config: dict | None = None
     hooks_scripts: list[Path] = field(default_factory=list)
-    mcp_config: Optional[dict] = None
-    lsp_config: Optional[dict] = None
+    mcp_config: dict | None = None
+    lsp_config: dict | None = None
 
     @property
     def has_skills(self) -> bool:
@@ -175,7 +174,7 @@ def _discover_commands(plugin_path: Path) -> list[Path]:
     return sorted(commands_dir.glob("*.md"))
 
 
-def _discover_hooks(plugin_path: Path) -> tuple[Optional[dict], list[Path]]:
+def _discover_hooks(plugin_path: Path) -> tuple[dict | None, list[Path]]:
     """Parse hooks configuration and find hook scripts."""
     hooks_dir = plugin_path / "hooks"
     if not hooks_dir.exists():
@@ -195,7 +194,7 @@ def _discover_hooks(plugin_path: Path) -> tuple[Optional[dict], list[Path]]:
     return hooks_config, sorted(scripts)
 
 
-def _load_json_config(path: Path) -> Optional[dict]:
+def _load_json_config(path: Path) -> dict | None:
     """Load a JSON config file if it exists."""
     if not path.exists():
         return None
