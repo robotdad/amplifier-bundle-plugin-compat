@@ -127,11 +127,6 @@ def install_plugin(
         _install_mcp_config(plugin, amplifier_home)
         installed_components["mcp"] = True
 
-    # Register skills directory in settings.yaml so Amplifier can find them
-    if plugin.has_skills:
-        skills_dir = install_path / "skills"
-        _register_skills_directory(skills_dir, amplifier_home)
-
     # Register in plugins.yaml
     info = create_plugin_info(
         name=plugin_name,
@@ -177,16 +172,15 @@ def remove_plugin(
 
     info = installed[name]
 
-    # Unregister skills directory from settings.yaml
-    skills_dir = info.install_path / "skills"
-    _unregister_skills_directory(skills_dir, amplifier_home)
-
-    # Remove skills symlink
-    skills_link = amplifier_home / "skills" / name
-    if skills_link.is_symlink():
-        skills_link.unlink()
-    elif skills_link.is_dir():
-        shutil.rmtree(skills_link)
+    # Remove individual skill symlinks
+    skills_dir = amplifier_home / "skills"
+    plugin_skills_dir = info.install_path / "skills"
+    if plugin_skills_dir.exists():
+        for skill_dir in plugin_skills_dir.iterdir():
+            if skill_dir.is_dir():
+                skill_link = skills_dir / skill_dir.name
+                if skill_link.is_symlink():
+                    skill_link.unlink()
 
     # Remove agents directory
     agents_dir = amplifier_home / "agents" / name
@@ -246,26 +240,38 @@ def _clone_repo(source: str) -> Path:
 
 
 def _install_skills(plugin: ParsedPlugin, amplifier_home: Path, install_path: Path) -> list[str]:
-    """Install skills by symlinking to discovery path."""
-    skills_target = amplifier_home / "skills" / plugin.manifest.name
+    """Install skills by symlinking individual skills to ~/.amplifier/skills/.
 
-    # Copy skills to install path first
+    The skills module discovers skills in ~/.amplifier/skills/<skill-name>/SKILL.md.
+    We symlink each skill directory directly to avoid nesting issues.
+    """
+    # Copy skills to install path first (canonical storage)
     plugin_skills = install_path / "skills"
     if plugin_skills.exists():
         shutil.rmtree(plugin_skills)
     shutil.copytree(plugin.root / "skills", plugin_skills)
 
-    # Create symlink in discovery path
-    skills_target.parent.mkdir(parents=True, exist_ok=True)
-    if skills_target.exists() or skills_target.is_symlink():
-        if skills_target.is_symlink():
-            skills_target.unlink()
-        else:
-            shutil.rmtree(skills_target)
+    # Symlink each individual skill to ~/.amplifier/skills/
+    skills_dir = amplifier_home / "skills"
+    skills_dir.mkdir(parents=True, exist_ok=True)
 
-    skills_target.symlink_to(plugin_skills)
+    skill_names = []
+    for skill_path in plugin.skills:
+        skill_name = skill_path.name  # Directory name (e.g., "test-driven-development")
+        skill_source = plugin_skills / skill_name
+        skill_target = skills_dir / skill_name
 
-    return [s.name for s in plugin.skills]
+        # Remove existing link/dir if present
+        if skill_target.is_symlink():
+            skill_target.unlink()
+        elif skill_target.is_dir():
+            shutil.rmtree(skill_target)
+
+        # Create symlink
+        skill_target.symlink_to(skill_source)
+        skill_names.append(skill_name)
+
+    return skill_names
 
 
 def _install_agents(plugin: ParsedPlugin, amplifier_home: Path, install_path: Path) -> list[str]:
@@ -333,64 +339,3 @@ def _install_mcp_config(plugin: ParsedPlugin, amplifier_home: Path) -> None:
     # Write back
     with open(mcp_path, "w") as f:
         json.dump(existing, f, indent=2)
-
-
-def _register_skills_directory(skills_dir: Path, amplifier_home: Path) -> None:
-    """Register a skills directory in settings.yaml.
-
-    The skills module looks in configured directories for skills.
-    Plugin skills are nested (plugin/skills/skill-name/SKILL.md),
-    so we need to add the plugin's skills directory to the search path.
-
-    Skills config goes at root level (not under 'config'):
-    skills:
-      dirs:
-        - /path/to/skills
-    """
-    import yaml
-
-    settings_path = amplifier_home / "settings.yaml"
-
-    # Load existing settings
-    settings: dict = {}
-    if settings_path.exists():
-        with open(settings_path) as f:
-            settings = yaml.safe_load(f) or {}
-
-    # Ensure skills.dirs exists at root level
-    if "skills" not in settings:
-        settings["skills"] = {}
-    if "dirs" not in settings["skills"]:
-        settings["skills"]["dirs"] = []
-
-    # Add the skills directory if not already present
-    skills_dir_str = str(skills_dir)
-    if skills_dir_str not in settings["skills"]["dirs"]:
-        settings["skills"]["dirs"].append(skills_dir_str)
-
-    # Write back
-    with open(settings_path, "w") as f:
-        yaml.dump(settings, f, default_flow_style=False, sort_keys=False)
-
-
-def _unregister_skills_directory(skills_dir: Path, amplifier_home: Path) -> None:
-    """Remove a skills directory from settings.yaml."""
-    import yaml
-
-    settings_path = amplifier_home / "settings.yaml"
-
-    if not settings_path.exists():
-        return
-
-    with open(settings_path) as f:
-        settings = yaml.safe_load(f) or {}
-
-    skills_dirs = settings.get("skills", {}).get("dirs", [])
-    skills_dir_str = str(skills_dir)
-
-    if skills_dir_str in skills_dirs:
-        skills_dirs.remove(skills_dir_str)
-
-        # Write back
-        with open(settings_path, "w") as f:
-            yaml.dump(settings, f, default_flow_style=False, sort_keys=False)
