@@ -129,6 +129,11 @@ def install_plugin(
         _install_mcp_config(plugin, amplifier_home)
         installed_components["mcp"] = True
 
+    # Register skills directory in settings.yaml so Amplifier can find them
+    if plugin.has_skills:
+        skills_dir = install_path / "skills"
+        _register_skills_directory(skills_dir, amplifier_home)
+
     # Register in plugins.yaml
     info = create_plugin_info(
         name=plugin_name,
@@ -173,6 +178,10 @@ def remove_plugin(
         return False, f"Plugin {name} is not installed"
 
     info = installed[name]
+
+    # Unregister skills directory from settings.yaml
+    skills_dir = info.install_path / "skills"
+    _unregister_skills_directory(skills_dir, amplifier_home)
 
     # Remove skills symlink
     skills_link = amplifier_home / "skills" / name
@@ -326,3 +335,59 @@ def _install_mcp_config(plugin: ParsedPlugin, amplifier_home: Path) -> None:
     # Write back
     with open(mcp_path, "w") as f:
         json.dump(existing, f, indent=2)
+
+
+def _register_skills_directory(skills_dir: Path, amplifier_home: Path) -> None:
+    """Register a skills directory in settings.yaml.
+
+    The skills module looks in configured directories for skills.
+    Plugin skills are nested (plugin/skills/skill-name/SKILL.md),
+    so we need to add the plugin's skills directory to the search path.
+    """
+    import yaml
+
+    settings_path = amplifier_home / "settings.yaml"
+
+    # Load existing settings
+    settings: dict = {}
+    if settings_path.exists():
+        with open(settings_path) as f:
+            settings = yaml.safe_load(f) or {}
+
+    # Ensure skills.dirs exists
+    if "skills" not in settings:
+        settings["skills"] = {}
+    if "dirs" not in settings["skills"]:
+        settings["skills"]["dirs"] = []
+
+    # Add the skills directory if not already present
+    skills_dir_str = str(skills_dir)
+    if skills_dir_str not in settings["skills"]["dirs"]:
+        settings["skills"]["dirs"].append(skills_dir_str)
+
+    # Write back
+    with open(settings_path, "w") as f:
+        yaml.dump(settings, f, default_flow_style=False, sort_keys=False)
+
+
+def _unregister_skills_directory(skills_dir: Path, amplifier_home: Path) -> None:
+    """Remove a skills directory from settings.yaml."""
+    import yaml
+
+    settings_path = amplifier_home / "settings.yaml"
+
+    if not settings_path.exists():
+        return
+
+    with open(settings_path) as f:
+        settings = yaml.safe_load(f) or {}
+
+    skills_dirs = settings.get("skills", {}).get("dirs", [])
+    skills_dir_str = str(skills_dir)
+
+    if skills_dir_str in skills_dirs:
+        skills_dirs.remove(skills_dir_str)
+
+        # Write back
+        with open(settings_path, "w") as f:
+            yaml.dump(settings, f, default_flow_style=False, sort_keys=False)
