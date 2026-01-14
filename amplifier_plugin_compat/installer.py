@@ -342,11 +342,10 @@ def _register_skills_directory(skills_dir: Path, amplifier_home: Path) -> None:
     Plugin skills are nested (plugin/skills/skill-name/SKILL.md),
     so we need to add the plugin's skills directory to the search path.
 
-    Settings go under the 'config' section to match Amplifier's structure:
-    config:
-      skills:
-        dirs:
-          - /path/to/skills
+    Skills config goes at root level (not under 'config'):
+    skills:
+      dirs:
+        - /path/to/skills
     """
     import yaml
 
@@ -358,18 +357,16 @@ def _register_skills_directory(skills_dir: Path, amplifier_home: Path) -> None:
         with open(settings_path) as f:
             settings = yaml.safe_load(f) or {}
 
-    # Ensure config.skills.dirs exists
-    if "config" not in settings:
-        settings["config"] = {}
-    if "skills" not in settings["config"]:
-        settings["config"]["skills"] = {}
-    if "dirs" not in settings["config"]["skills"]:
-        settings["config"]["skills"]["dirs"] = []
+    # Ensure skills.dirs exists at root level
+    if "skills" not in settings:
+        settings["skills"] = {}
+    if "dirs" not in settings["skills"]:
+        settings["skills"]["dirs"] = []
 
     # Add the skills directory if not already present
     skills_dir_str = str(skills_dir)
-    if skills_dir_str not in settings["config"]["skills"]["dirs"]:
-        settings["config"]["skills"]["dirs"].append(skills_dir_str)
+    if skills_dir_str not in settings["skills"]["dirs"]:
+        settings["skills"]["dirs"].append(skills_dir_str)
 
     # Write back
     with open(settings_path, "w") as f:
@@ -388,7 +385,7 @@ def _unregister_skills_directory(skills_dir: Path, amplifier_home: Path) -> None
     with open(settings_path) as f:
         settings = yaml.safe_load(f) or {}
 
-    skills_dirs = settings.get("config", {}).get("skills", {}).get("dirs", [])
+    skills_dirs = settings.get("skills", {}).get("dirs", [])
     skills_dir_str = str(skills_dir)
 
     if skills_dir_str in skills_dirs:

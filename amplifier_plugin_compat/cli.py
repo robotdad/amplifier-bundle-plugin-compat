@@ -12,7 +12,7 @@ from amplifier_plugin_compat.registry import get_installed_plugins
 
 
 @click.group()
-@click.version_option()
+@click.version_option(package_name="amplifier-bundle-plugin-compat")
 def main() -> None:
     """Manage Claude Code plugins for Amplifier compatibility."""
     pass
@@ -175,7 +175,7 @@ def validate(path: Path) -> None:
         plugin = parse_plugin(path)
     except Exception as e:
         click.secho(f"✗ Invalid plugin: {e}", fg="red")
-        raise SystemExit(1)
+        raise SystemExit(1) from None
 
     click.secho(f"✓ Valid plugin: {plugin.manifest.name}", fg="green")
     click.echo(f"  Version: {plugin.manifest.version}")
