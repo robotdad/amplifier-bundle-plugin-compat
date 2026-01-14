@@ -19,13 +19,17 @@ Include in your bundle:
 
 ```yaml
 includes:
-  - bundle: git+https://github.com/microsoft/amplifier-bundle-plugin-compat@main
+  - bundle: git+https://github.com/robotdad/amplifier-bundle-plugin-compat@main
 ```
 
 ### Standalone CLI
 
 ```bash
-uvx amplifier-plugins install github.com/obra/superpowers
+# Install the CLI
+uv tool install git+https://github.com/robotdad/amplifier-bundle-plugin-compat
+
+# Or run directly without installing
+uvx --from git+https://github.com/robotdad/amplifier-bundle-plugin-compat amplifier-plugins --help
 ```
 
 ## Usage
