@@ -172,15 +172,17 @@ def remove_plugin(
 
     info = installed[name]
 
-    # Remove individual skill symlinks
+    # Remove copied skill directories
     skills_dir = amplifier_home / "skills"
     plugin_skills_dir = info.install_path / "skills"
     if plugin_skills_dir.exists():
         for skill_dir in plugin_skills_dir.iterdir():
             if skill_dir.is_dir():
-                skill_link = skills_dir / skill_dir.name
-                if skill_link.is_symlink():
-                    skill_link.unlink()
+                skill_target = skills_dir / skill_dir.name
+                if skill_target.is_symlink():
+                    skill_target.unlink()
+                elif skill_target.is_dir():
+                    shutil.rmtree(skill_target)
 
     # Remove agents directory
     agents_dir = amplifier_home / "agents" / name
@@ -240,18 +242,19 @@ def _clone_repo(source: str) -> Path:
 
 
 def _install_skills(plugin: ParsedPlugin, amplifier_home: Path, install_path: Path) -> list[str]:
-    """Install skills by symlinking individual skills to ~/.amplifier/skills/.
+    """Install skills by copying to ~/.amplifier/skills/.
 
     The skills module discovers skills in ~/.amplifier/skills/<skill-name>/SKILL.md.
-    We symlink each skill directory directly to avoid nesting issues.
+    We copy each skill directory directly (symlinks don't work because Python's
+    Path.glob("**/SKILL.md") doesn't follow symlinks).
     """
-    # Copy skills to install path first (canonical storage)
+    # Copy skills to install path for canonical storage
     plugin_skills = install_path / "skills"
     if plugin_skills.exists():
         shutil.rmtree(plugin_skills)
     shutil.copytree(plugin.root / "skills", plugin_skills)
 
-    # Symlink each individual skill to ~/.amplifier/skills/
+    # Copy each individual skill to ~/.amplifier/skills/
     skills_dir = amplifier_home / "skills"
     skills_dir.mkdir(parents=True, exist_ok=True)
 
@@ -261,14 +264,14 @@ def _install_skills(plugin: ParsedPlugin, amplifier_home: Path, install_path: Pa
         skill_source = plugin_skills / skill_name
         skill_target = skills_dir / skill_name
 
-        # Remove existing link/dir if present
+        # Remove existing dir if present
         if skill_target.is_symlink():
             skill_target.unlink()
         elif skill_target.is_dir():
             shutil.rmtree(skill_target)
 
-        # Create symlink
-        skill_target.symlink_to(skill_source)
+        # Copy skill directory
+        shutil.copytree(skill_source, skill_target)
         skill_names.append(skill_name)
 
     return skill_names
